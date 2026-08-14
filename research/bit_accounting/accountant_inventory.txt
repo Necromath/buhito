@@ -1,0 +1,88 @@
+
+==============================================================================
+TRACKED CORE ACCOUNTANT
+==============================================================================
+module: /Users/mmontes/Projects/buhito-dev/src/buhito/mdl.py
+
+[_positive_integer_bits]
+signature: (n: 'int') -> 'float'
+doc:
+Notebook-compatible universal code for a positive integer.
+
+[_log2_choose]
+signature: (n: 'int', k: 'int') -> 'float'
+
+[_dirichlet_multinomial_bits]
+signature: (counts: 'Counter[Hashable]', alphabet_size: 'int', alpha: 'float' = 0.5) -> 'float'
+
+[_edgelist_topology_bits]
+signature: (graph: 'nx.Graph') -> 'float'
+
+[_label_bits]
+signature: (graph: 'nx.Graph', alphabets: 'Alphabets') -> 'float'
+
+[_base_bits]
+signature: (graph: 'nx.Graph', alphabets: 'Alphabets', *, complete: 'bool' = True) -> 'float'
+
+[_boundary_bits]
+signature: (rewrite: 'Rewrite', *, quotient_by_automorphisms: 'bool') -> 'float'
+
+[_dictionary_bits]
+signature: (rules: 'tuple[MotifRule, ...]', alphabets: 'Alphabets') -> 'float'
+
+==============================================================================
+DARWIN ZINC EXPLICIT CODEC
+==============================================================================
+source: /Users/mmontes/Projects/buhito-dev/research/zinc12k_2026/run_zinc12k_bit_accounting_legacy.py
+
+[delta_pos]
+def delta_pos(x: int) -> int:
+
+[delta_nonneg]
+def delta_nonneg(x: int) -> int:
+
+[width]
+def width(cardinality: int) -> int:
+
+[subset_bits]
+def subset_bits(universe: int, chosen: int) -> int:
+
+[graph_bits]
+def graph_bits(graph: nx.Graph, n_atom: int, n_bond: int) -> dict[str, int]:
+
+[encode_covered]
+def encode_covered(graph, selected, rule, atom_index, bond_index):
+
+[decode]
+def decode(record, rule, atoms, bonds):
+
+[compressed_bits]
+def compressed_bits(original, residual, record, n_atom, n_bond, ports_per_rule):
+
+[build_vocabs]
+def build_vocabs(original, rule):
+
+[summarize]
+def summarize(per_graph, dictionary_bits):
+
+==============================================================================
+ACCOUNTING COMPARISON CHECKLIST
+==============================================================================
+[ ] integer code
+[ ] node-count code
+[ ] edge-count code
+[ ] topology code
+[ ] node-label code
+[ ] edge-label code
+[ ] dictionary code
+[ ] coverage-map code
+[ ] occurrence-count code
+[ ] rule-ID code
+[ ] attachment endpoint code
+[ ] attachment port code
+[ ] attachment edge-label code
+[ ] selector/model-choice code
+[ ] dictionary amortization
+[ ] decoder target
+[ ] coded graph properties
+[ ] node-identifier treatment

@@ -1,0 +1,280 @@
+==============================================================================
+delta_pos
+==============================================================================
+def delta_pos(x: int) -> int:
+    if x <= 0:
+        raise ValueError(x)
+    length = x.bit_length()
+    return length + 2 * length.bit_length() - 2
+
+==============================================================================
+delta_nonneg
+==============================================================================
+def delta_nonneg(x: int) -> int:
+    return delta_pos(x + 1)
+
+==============================================================================
+width
+==============================================================================
+def width(cardinality: int) -> int:
+    return 0 if cardinality <= 1 else int(math.ceil(math.log2(cardinality)))
+
+==============================================================================
+subset_bits
+==============================================================================
+def subset_bits(universe: int, chosen: int) -> int:
+    if chosen < 0 or chosen > universe:
+        raise ValueError((universe, chosen))
+    if chosen in (0, universe):
+        return 0
+    value = (
+        math.lgamma(universe + 1)
+        - math.lgamma(chosen + 1)
+        - math.lgamma(universe - chosen + 1)
+    ) / math.log(2.0)
+    return int(math.ceil(value))
+
+==============================================================================
+graph_bits
+==============================================================================
+def graph_bits(graph: nx.Graph, n_atom: int, n_bond: int) -> dict[str, int]:
+    require_simple(graph, "graph")
+    n = graph.number_of_nodes()
+    m = graph.number_of_edges()
+    out = {
+        "header": delta_nonneg(n) + delta_nonneg(m),
+        "topology": subset_bits(n * (n - 1) // 2, m),
+        "node_labels": n * width(n_atom),
+        "edge_labels": m * width(n_bond),
+        "flag": 0,
+        "occurrences": 0,
+        "attachments": 0,
+    }
+    out["total"] = sum(out.values())
+    return out
+
+==============================================================================
+encode_covered
+==============================================================================
+def encode_covered(graph, selected, rule, atom_index, bond_index):
+    membership = {}
+    for occ_id, occurrence in enumerate(selected):
+        for port_id, node in enumerate(occurrence):
+            if node in membership:
+                raise RuntimeError("Overlapping selected occurrences.")
+            membership[node] = (occ_id, port_id)
+
+    residual_nodes = [node for node in graph.nodes() if node not in membership]
+    residual_id = {node: i for i, node in enumerate(residual_nodes)}
+    residual = nx.Graph()
+
+    for node in residual_nodes:
+        residual.add_node(residual_id[node], __label__=atom(graph.nodes[node]))
+
+    attachments = []
+    ports = rule["ports"]
+    rule_graph = rule["graph"]
+
+    for u, v, attrs in graph.edges(data=True):
+        u_mem = membership.get(u)
+        v_mem = membership.get(v)
+        label = bond(attrs)
+
+        if u_mem is None and v_mem is None:
+            residual.add_edge(residual_id[u], residual_id[v], __label__=label)
+            continue
+
+        if u_mem is not None and v_mem is not None and u_mem[0] == v_mem[0]:
+            ru, rv = ports[u_mem[1]], ports[v_mem[1]]
+            if not rule_graph.has_edge(ru, rv) or bond(rule_graph.edges[ru, rv]) != label:
+                raise RuntimeError("Selected occurrence does not match rule internally.")
+            continue
+
+        left = ("r", residual_id[u]) if u_mem is None else ("p", u_mem[0], u_mem[1])
+        right = ("r", residual_id[v]) if v_mem is None else ("p", v_mem[0], v_mem[1])
+        if endpoint_key(right) < endpoint_key(left):
+            left, right = right, left
+        attachments.append((left, right, label))
+
+    attachments.sort(key=lambda row: (endpoint_key(row[0]), endpoint_key(row[1]), row[2]))
+
+    residual_edges = []
+    for u, v, attrs in residual.edges(data=True):
+        if u > v:
+            u, v = v, u
+        residual_edges.append([u, v, bond_index[bond(attrs)]])
+    residual_edges.sort()
+
+    record = {
+        "res": {
+            "n": len(residual_nodes),
+            "x": [atom_index[atom(graph.nodes[node])] for node in residual_nodes],
+            "e": residual_edges,
+        },
+        "occ": [0] * len(selected),
+        "att": [[list(a), list(b), bond_index[label]] for a, b, label in attachments],
+    }
+    return record, residual
+
+==============================================================================
+decode
+==============================================================================
+def decode(record, rule, atoms, bonds):
+    graph = nx.Graph()
+    residual = record["res"]
+
+    for i, label in enumerate(residual["x"]):
+        graph.add_node(i, __label__=atoms[int(label)])
+
+    next_id = len(residual["x"])
+    port_nodes = {}
+
+    for occ_id, _rule_id in enumerate(record["occ"]):
+        for port_id, rule_node in enumerate(rule["ports"]):
+            node_id = next_id
+            next_id += 1
+            port_nodes[(occ_id, port_id)] = node_id
+            graph.add_node(node_id, __label__=atom(rule["graph"].nodes[rule_node]))
+
+        for u, v, attrs in rule["graph"].edges(data=True):
+            pu = rule["ports"].index(u)
+            pv = rule["ports"].index(v)
+            graph.add_edge(port_nodes[(occ_id, pu)], port_nodes[(occ_id, pv)], __label__=bond(attrs))
+
+    for u, v, label in residual["e"]:
+        graph.add_edge(int(u), int(v), __label__=bonds[int(label)])
+
+    for left, right, label in record["att"]:
+        def endpoint(obj):
+            if obj[0] == "r":
+                return int(obj[1])
+            return port_nodes[(int(obj[1]), int(obj[2]))]
+
+        graph.add_edge(endpoint(left), endpoint(right), __label__=bonds[int(label)])
+
+    return graph
+
+==============================================================================
+compressed_bits
+==============================================================================
+def compressed_bits(original, residual, record, n_atom, n_bond, ports_per_rule):
+    residual_bits = graph_bits(residual, n_atom, n_bond)
+    k = len(record["occ"])
+    r = residual.number_of_nodes()
+    endpoint_universe = r + k * ports_per_rule
+    attachment_count = len(record["att"])
+
+    out = {
+        **{f"residual_{key}": value for key, value in residual_bits.items() if key != "total"},
+        "flag": 1,
+        "occurrences": delta_nonneg(k),
+        "rule_ids": k * width(1),
+        "attachment_count": delta_nonneg(attachment_count),
+        "attachment_endpoints": attachment_count * subset_bits(endpoint_universe, 2),
+        "attachment_bond_labels": attachment_count * width(n_bond),
+    }
+
+    out["attachments"] = (
+        out["attachment_count"]
+        + out["attachment_endpoints"]
+        + out["attachment_bond_labels"]
+    )
+    out["total"] = (
+        residual_bits["total"]
+        + out["flag"]
+        + out["occurrences"]
+        + out["rule_ids"]
+        + out["attachments"]
+    )
+    return out
+
+==============================================================================
+build_vocabs
+==============================================================================
+def build_vocabs(original, rule):
+    train_atoms = {
+        atom(attrs)
+        for graph in original.graphs["train"]
+        for _, attrs in graph.nodes(data=True)
+    }
+    train_bonds = {
+        bond(attrs)
+        for graph in original.graphs["train"]
+        for _, _, attrs in graph.edges(data=True)
+    }
+
+    rule_atoms = {atom(attrs) for _, attrs in rule["graph"].nodes(data=True)}
+    rule_bonds = {bond(attrs) for _, _, attrs in rule["graph"].edges(data=True)}
+
+    atom_vocab = sorted(train_atoms | rule_atoms)
+    bond_vocab = sorted(train_bonds | rule_bonds)
+
+    atom_set = set(atom_vocab)
+    bond_set = set(bond_vocab)
+
+    for split in SPLITS:
+        unseen_atoms = {
+            atom(attrs)
+            for graph in original.graphs[split]
+            for _, attrs in graph.nodes(data=True)
+            if atom(attrs) not in atom_set
+        }
+        unseen_bonds = {
+            bond(attrs)
+            for graph in original.graphs[split]
+            for _, _, attrs in graph.edges(data=True)
+            if bond(attrs) not in bond_set
+        }
+        if unseen_atoms or unseen_bonds:
+            raise RuntimeError(
+                f"{split} has labels outside the train-frozen vocabulary: "
+                f"atoms={sorted(unseen_atoms)}, bonds={sorted(unseen_bonds)}"
+            )
+
+    return atom_vocab, bond_vocab
+
+==============================================================================
+summarize
+==============================================================================
+def summarize(per_graph, dictionary_bits):
+    rows = []
+
+    def one(scope, frame, charge_dictionary):
+        original = int(frame["original_total_bits"].sum())
+        payload = int(frame["compressed_total_bits"].sum())
+        covered = frame[frame["covered"]]
+        covered_original = int(covered["original_total_bits"].sum())
+        covered_payload = int(covered["compressed_total_bits"].sum())
+        coverage_map = subset_bits(len(frame), int(frame["covered"].sum()))
+        dictionary = dictionary_bits if charge_dictionary else 0
+        total = payload + coverage_map + dictionary
+        saved = original - total
+        return {
+            "scope": scope,
+            "n_graphs": int(len(frame)),
+            "covered_graphs": int(frame["covered"].sum()),
+            "motif_occurrences": int(frame["motif_occurrences"].sum()),
+            "coverage_fraction": float(frame["covered"].mean()),
+            "coverage_map_bits": int(coverage_map),
+            "original_bits": original,
+            "compressed_payload_bits": payload,
+            "dictionary_bits_charged": int(dictionary),
+            "compressed_total_bits": int(total),
+            "net_bits_saved": int(saved),
+            "net_savings_fraction": saved / original if original else math.nan,
+            "compression_ratio_original_over_compressed": original / total if total else math.inf,
+            "covered_original_bits": covered_original,
+            "covered_payload_bits": covered_payload,
+            "covered_payload_bits_saved": covered_original - covered_payload,
+            "covered_payload_savings_fraction": (
+                (covered_original - covered_payload) / covered_original if covered_original else math.nan
+            ),
+        }
+
+    for split in SPLITS:
+        part = per_graph[per_graph["split"] == split]
+        rows.append(one(f"{split}_frozen_reuse", part, False))
+        rows.append(one(f"{split}_standalone", part, True))
+
+    rows.append(one("all_splits_dictionary_once", per_graph, True))
+    return pd.DataFrame(rows)

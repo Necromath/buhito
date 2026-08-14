@@ -1,0 +1,65 @@
+# Operating system and editors
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python bytecode and environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.python-version
+
+# Packaging and test outputs
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+
+# Notebook state
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# Local datasets and generated experiment artifacts
+data/
+REDDIT-MULTI-5K/
+artifacts/
+results/
+outputs/
+bench_results/
+regression_artifacts/
+artifacts_syntax_treelets/
+
+# Serialized caches and logs
+*.pkl
+*.pkl.gz
+*.joblib
+*.log
+
+# Known large/generated research outputs
+summary.csv
+scale_data.pkl
+reddit5k_*.csv
+reddit5k_*.json
+reddit_*.png
+probe_*.png
+shap_*.png
+unseen_bits_vs_error.png
+symmetry_story.png
+qmugs_benchmark.png
+analysis.png
+combined_graphlets_peterson_graph.png
+
+.buhito_patch_backups/

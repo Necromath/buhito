@@ -1,0 +1,142 @@
+==============================================================================
+_positive_integer_bits
+==============================================================================
+def _positive_integer_bits(n: int) -> float:
+    """Notebook-compatible universal code for a positive integer."""
+    n = max(int(n), 1)
+    return math.log2(n) + math.log2(n + 1)
+
+
+==============================================================================
+_log2_choose
+==============================================================================
+def _log2_choose(n: int, k: int) -> float:
+    if k < 0 or k > n:
+        return math.inf
+    return _log2_factorial(n) - _log2_factorial(k) - _log2_factorial(n - k)
+
+
+==============================================================================
+_dirichlet_multinomial_bits
+==============================================================================
+def _dirichlet_multinomial_bits(
+    counts: Counter[Hashable],
+    alphabet_size: int,
+    alpha: float = 0.5,
+) -> float:
+    if alphabet_size <= 0:
+        return 0.0
+    total = sum(counts.values())
+    # ``alphabet_size`` can be an astronomically large Python int (Burnside's
+    # lemma over many boundary edges for a high-degree motif). Computing
+    # ``alphabet_size * alpha`` as a float can overflow outright, and even
+    # when it doesn't, ``lgamma(concentration) - lgamma(total + concentration)``
+    # silently loses all information about ``total`` once ``concentration``
+    # is too large for float64 to represent the difference -- well before
+    # the point where it would actually overflow. ``math.log`` safely
+    # handles arbitrary-precision ints (unlike float conversion), so we work
+    # in log-space throughout instead of ever materializing ``concentration``
+    # as a literal float.
+    log_concentration = math.log(alphabet_size) + math.log(alpha)
+    log_probability = _log_gamma_difference(log_concentration, total)
+    for count in counts.values():
+        log_probability += lgamma(count + alpha) - lgamma(alpha)
+    return -log_probability / _LN2
+
+
+==============================================================================
+_edgelist_topology_bits
+==============================================================================
+def _edgelist_topology_bits(graph: nx.Graph) -> float:
+    edge_count = graph.number_of_edges()
+    if edge_count == 0:
+        return 0.0
+    return (
+        _log2_factorial(2 * edge_count)
+        - _log2_factorial(edge_count)
+        - edge_count
+        - sum(_log2_factorial(degree) for _, degree in graph.degree())
+    )
+
+
+==============================================================================
+_label_bits
+==============================================================================
+def _label_bits(graph: nx.Graph, alphabets: Alphabets) -> float:
+    node_counts = Counter(
+        data[_NODE_LABEL] for _, data in graph.nodes(data=True)
+    )
+    edge_counts = Counter(
+        data[_EDGE_LABEL] for _, _, data in graph.edges(data=True)
+    )
+    return _dirichlet_multinomial_bits(
+        node_counts, alphabets.n_node
+    ) + _dirichlet_multinomial_bits(edge_counts, alphabets.n_edge)
+
+
+==============================================================================
+_base_bits
+==============================================================================
+def _base_bits(
+    graph: nx.Graph,
+    alphabets: Alphabets,
+    *,
+    complete: bool = True,
+) -> float:
+    bits = _edgelist_topology_bits(graph) + _label_bits(graph, alphabets)
+    if complete:
+        degrees = [degree for _, degree in graph.degree()]
+        max_degree = max(degrees, default=0)
+        bits += _positive_integer_bits(max(graph.number_of_nodes(), 1))
+        bits += _positive_integer_bits(max(max_degree, 1))
+        bits += _dirichlet_multinomial_bits(
+            Counter(degrees), max_degree + 1
+        )
+    return bits
+
+
+==============================================================================
+_boundary_bits
+==============================================================================
+def _boundary_bits(rewrite: Rewrite, *, quotient_by_automorphisms: bool) -> float:
+    rule_map = {rule.rank: rule for rule in rewrite.rules}
+    signatures = (
+        rewrite.canonical_signatures
+        if quotient_by_automorphisms
+        else rewrite.raw_signatures
+    )
+    grouped_symbols: dict[tuple[Any, ...], list[tuple]] = defaultdict(list)
+    for supernode, signature in signatures.items():
+        rule_rank = rewrite.supernode_rule[supernode]
+        boundary_edges = len(_flatten_signature(signature))
+        context_key = (
+            rule_rank,
+            boundary_edges,
+            rewrite.boundary_contexts[supernode],
+        )
+        grouped_symbols[context_key].append(signature)
+
+    bits = 0.0
+    for (rule_rank, boundary_edges, _), symbols in grouped_symbols.items():
+        rule = rule_map[rule_rank]
+        alphabet_size = (
+            rule.ordered_port_orbit_count(boundary_edges)
+            if quotient_by_automorphisms
+            else rule.motif.number_of_nodes() ** boundary_edges
+        )
+        bits += _dirichlet_multinomial_bits(
+            Counter(symbols), max(alphabet_size, 1)
+        )
+    return bits
+
+
+==============================================================================
+_dictionary_bits
+==============================================================================
+def _dictionary_bits(rules: tuple[MotifRule, ...], alphabets: Alphabets) -> float:
+    if not rules:
+        return 0.0
+    return _positive_integer_bits(len(rules)) + sum(
+        _base_bits(rule.motif, alphabets, complete=True) for rule in rules
+    )
+

@@ -1,0 +1,73 @@
+stages:
+  - test
+  - build
+
+variables:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  key: "pip-$CI_JOB_IMAGE"
+  paths:
+    - .cache/pip/
+
+.test-template:
+  stage: test
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends git
+    - rm -rf /var/lib/apt/lists/*
+    - git --version
+    - git config --global --add safe.directory "$CI_PROJECT_DIR"
+    - git rev-parse --is-inside-work-tree
+    - git status --short
+    - python -m pip install --upgrade pip
+    - python -m pip install -e ".[tests]"
+  script:
+    - python scripts/check_repository_hygiene.py
+    - python -m pytest
+    - python examples/mdl_dataset_example.py
+    - python examples/mdl_tu_benchmark.py --help
+    - python examples/qm9/benchmark_graphlet_featurizers_train_test.py --help
+
+python-3.10:
+  extends: .test-template
+  image: python:3.10-slim
+
+python-3.12:
+  extends: .test-template
+  image: python:3.12-slim
+
+gnn-pareto-cpu:
+  stage: test
+  image: python:3.12-slim
+  variables:
+    OMP_NUM_THREADS: "1"
+    MKL_NUM_THREADS: "1"
+    OPENBLAS_NUM_THREADS: "1"
+    NUMEXPR_NUM_THREADS: "1"
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends git
+    - rm -rf /var/lib/apt/lists/*
+    - git config --global --add safe.directory "$CI_PROJECT_DIR"
+    - python -m pip install --upgrade pip
+    - python -m pip install -e ".[tests,gnn]"
+  script:
+    - python -m pytest tests/test_zz_gnn_benchmark.py tests/test_pareto_benchmark.py -v -ra
+    - python examples/benchmark_gnn_tokenization.py --help
+    - python examples/benchmark_gnn_pareto.py --help
+
+build-wheel:
+  stage: build
+  image: python:3.12-slim
+  before_script:
+    - python -m pip install --upgrade pip build
+  script:
+    - python -m build
+    - python -m pip install dist/*.whl
+    - python -c "import buhito; print(buhito.__file__)"
+  artifacts:
+    when: always
+    paths:
+      - dist/

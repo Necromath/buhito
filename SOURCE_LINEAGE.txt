@@ -1,0 +1,18 @@
+Buhito personal handoff snapshot
+
+Source repository:
+/Users/mmontes/Projects/buhito-dev
+
+Source branch:
+refactor/enumerative-mdl-clean
+
+Source commit:
+d4fbe10a16c0fd1eb3fcb399b00ed70776f7ebca
+
+Created:
+Fri Aug 14 13:50:24 MDT 2026
+
+The original repository and its complete historical Git history remain
+preserved separately. This GitHub repository begins from a clean source
+snapshot because historical generated artifacts exceeded GitHub's normal
+Git object size limit.
