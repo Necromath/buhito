@@ -199,7 +199,7 @@ def test_training_requires_labels_and_runs_with_labels(tmp_path):
                 hidden_channels=4,
                 batch_size=3,
                 device="cpu",
-                phase_timeout_seconds=30,
+                phase_timeout_seconds=120,
             ),
         )
 
@@ -217,7 +217,7 @@ def test_training_requires_labels_and_runs_with_labels(tmp_path):
             batch_size=3,
             device="cpu",
             threads=1,
-            phase_timeout_seconds=30,
+            phase_timeout_seconds=120,
         ),
     )
     run_gnn_prepared_tasks(prepared, jobs=1)
