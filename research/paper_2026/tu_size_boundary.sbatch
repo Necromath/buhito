@@ -35,7 +35,7 @@ mkdir -p logs "$OUTPUT_ROOT" "$CACHE_ROOT"
   --min-occurrences 2 \
   --max-candidates 250 \
   --dictionary-selection fixed \
-  --min-rule-savings -inf \
+  --min-rule-savings=-inf \
   --selector sparse \
   --fit-size 0 \
   --eval-size -1 \
