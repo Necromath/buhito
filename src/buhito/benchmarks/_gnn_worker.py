@@ -227,31 +227,38 @@ def _evaluation_pass(
     model: Any,
     batches: list[dict[str, Any]],
     device: Any,
-) -> tuple[float, int, int, list[int], list[int]]:
+) -> tuple[float, int, int, list[int], list[int], list[list[float]]]:
     model.eval()
     loss_total = 0.0
     correct = 0
     total = 0
     predictions_all: list[int] = []
     targets_all: list[int] = []
+    probabilities_all: list[list[float]] = []
     with torch.inference_mode():
         for batch in batches:
             x, edge_index, graph_index, labels = _move(batch, device)
             logits = model(x, edge_index, graph_index, batch["graphs"])
             loss = torch.nn.functional.cross_entropy(logits, labels)
             predictions = logits.argmax(dim=1)
+            probabilities = torch.softmax(logits, dim=1)
             count = int(labels.numel())
             loss_total += float(loss.detach().cpu()) * count
             correct += int((predictions == labels).sum().cpu())
             total += count
             predictions_all.extend(int(value) for value in predictions.cpu())
             targets_all.extend(int(value) for value in labels.cpu())
+            probabilities_all.extend(
+                [float(value) for value in row]
+                for row in probabilities.cpu().tolist()
+            )
     return (
         loss_total / max(total, 1),
         correct,
         total,
         predictions_all,
         targets_all,
+        probabilities_all,
     )
 
 
@@ -391,6 +398,7 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
     quality_per_class_metrics: list[dict[str, Any]] | None = None
     quality_predictions: list[int] | None = None
     quality_targets: list[int] | None = None
+    quality_probabilities: list[list[float]] | None = None
     checksum = 0.0
 
     started = time.perf_counter()
@@ -433,6 +441,7 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
             quality_total,
             quality_predictions,
             quality_targets,
+            quality_probabilities,
         ) = _evaluation_pass(torch, model, quality_batches, device)
         _synchronize(torch, device)
         quality_evaluation_seconds = time.perf_counter() - quality_started
@@ -494,6 +503,7 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
         "quality_eval_per_class_metrics": quality_per_class_metrics,
         "quality_eval_predictions": quality_predictions,
         "quality_eval_targets": quality_targets,
+        "quality_eval_probabilities": quality_probabilities,
         "quality_evaluation_seconds": quality_evaluation_seconds,
         "quality_eval_graphs": sum(
             batch["graphs"] for batch in quality_batches
