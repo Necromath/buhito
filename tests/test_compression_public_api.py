@@ -1,5 +1,7 @@
 import networkx as nx
 
+import buhito
+import buhito.mdl
 from buhito.compression import ExhaustiveGraphletEnumerator, MDLGraphCompressor
 
 
@@ -51,3 +53,12 @@ def test_fit_and_transform_are_separate_public_operations():
     assert hasattr(compressor, "fit")
     assert hasattr(compressor, "transform")
     assert hasattr(compressor, "fit_transform")
+
+
+def test_legacy_and_top_level_imports_share_the_canonical_objects():
+    assert buhito.MDLGraphCompressor is MDLGraphCompressor
+    assert buhito.mdl.MDLGraphCompressor is MDLGraphCompressor
+    assert (
+        buhito.ExhaustiveGraphletEnumerator
+        is ExhaustiveGraphletEnumerator
+    )
