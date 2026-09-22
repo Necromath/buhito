@@ -170,10 +170,10 @@ Confirm that Python imports the checkout you intend to modify:
 ```bash
 python - <<'PY'
 import buhito
-import buhito.mdl
+import buhito.compression
 
 print("Buhito:", buhito.__file__)
-print("MDL:", buhito.mdl.__file__)
+print("Compression:", buhito.compression.__file__)
 PY
 ```
 
@@ -186,7 +186,10 @@ PY
 ```python
 import networkx as nx
 
-from buhito import ExhaustiveGraphletEnumerator, MDLGraphCompressor
+from buhito.compression import (
+    ExhaustiveGraphletEnumerator,
+    MDLGraphCompressor,
+)
 
 
 def triangles(count: int) -> nx.Graph:
@@ -228,10 +231,15 @@ print(compressor.dictionary_path_frame())
 
 model_graphs = result.model_graphs()
 decoded_graphs = result.decoded_graphs()
+
+for original, decoded in zip(eval_graphs, decoded_graphs, strict=True):
+    assert nx.is_isomorphic(original, decoded)
 ```
 
 `model_graphs` contains the representation selected by the complete MDL
-objective. `decoded_graphs` contains reconstructed graphs.
+objective. `decoded_graphs` contains reconstructed graphs. Dictionary discovery
+happens only in `fit`; `transform` applies that frozen dictionary to held-out
+graphs.
 
 ### Inspect candidate motifs as NetworkX graphs
 
