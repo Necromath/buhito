@@ -62,3 +62,26 @@ behavior. Follow-up commits will move implementation from the monolithic
 
 During migration, `buhito.mdl` remains a compatibility import path. Each move
 must preserve the current test suite and exact-reconstruction checks.
+
+## Definition of done
+
+The refactor is complete when all of the following are true:
+
+- the production implementation lives in `buhito.compression`, not in
+  `buhito.mdl`;
+- `buhito.mdl` is a compatibility module containing imports and deprecation
+  guidance rather than a second implementation;
+- recognition, dictionary construction, substitution, and orchestration have
+  one-way dependencies with no circular imports;
+- the core accepts already-loaded NetworkX graphs and contains no
+  dataset-specific loading branches;
+- `fit` is the only operation that learns a dictionary and `transform` never
+  changes the fitted rules;
+- configured topology and labels round-trip exactly on every rewritten graph;
+- the README example runs as written in the base test environment;
+- the full unit-test suite passes locally;
+- the combined production compression modules remain small enough to review,
+  with any departure from the 1,000--1,500-line estimate explained in the PR.
+
+Large ADMET, TU, REDDIT, ZINC, and QMugs runs are explicitly outside this
+refactor. They consume the stable API after this deliverable is merged.
