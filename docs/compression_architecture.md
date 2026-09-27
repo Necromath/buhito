@@ -48,20 +48,26 @@ and edge attributes. The compressed representation carries motif identity and
 boundary-port metadata. A carrier graph with that metadata removed is a lossy
 model view, even when the encoded archive remains exactly decodable.
 
-## Migration plan
+## Implemented layout
 
-The first commit establishes and tests the public boundary without changing
-behavior. Follow-up commits will move implementation from the monolithic
-`buhito.mdl` module in this order:
+The production implementation has been moved out of the former monolithic
+`buhito.mdl` module:
 
-1. shared dataclasses and graph-schema normalization;
-2. candidate recognition and occurrence counting;
-3. dictionary accounting and selection;
-4. substitution, boundary ports, and reconstruction;
-5. the thin orchestration class.
+1. `models.py` owns shared dataclasses, graph-schema normalization, and coding
+   primitives;
+2. `recognition.py` owns enumeration, canonical motif recognition, and exact
+   occurrence alignment;
+3. `substitution.py` owns occurrence packing, contraction, boundary ports,
+   validation, and decoding;
+4. `dictionary.py` owns rewrite codelengths and corpus selection;
+5. `pipeline.py` owns fitted dictionary construction, frozen transformation,
+   caching, and reports.
 
-During migration, `buhito.mdl` remains a compatibility import path. Each move
-must preserve the current test suite and exact-reconstruction checks.
+`buhito.mdl` is now a compatibility import path for existing experiments. The
+five implementation files total roughly 2,400 lines. This is above the initial
+1,000--1,500-line estimate because it includes the explicit analytical MDL
+accounting, exact boundary-port codec, validation diagnostics, caching, and
+report construction that were already part of the tested implementation.
 
 ## Definition of done
 
