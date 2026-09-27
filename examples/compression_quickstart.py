@@ -31,11 +31,18 @@ compressor = MDLGraphCompressor(
 
 # Learn motif identities and selection decisions from training graphs only.
 compressor.fit(train_graphs)
+frozen_rule_keys = tuple(rule.key for rule in compressor.rules_ or ())
 
 # Apply the frozen dictionary without inspecting held-out targets.
 result = compressor.transform(test_graphs)
+assert tuple(rule.key for rule in compressor.rules_ or ()) == frozen_rule_keys
 compressed_graphs = result.model_graphs(force_rewrite=True)
 decoded_graphs = result.decoded_graphs()
+
+assert all(
+    compressed.number_of_nodes() < original.number_of_nodes()
+    for original, compressed in zip(test_graphs, compressed_graphs, strict=True)
+)
 
 node_match = nx.algorithms.isomorphism.categorical_node_match("atom", None)
 edge_match = nx.algorithms.isomorphism.categorical_edge_match("bond", None)
@@ -47,6 +54,24 @@ for original, decoded in zip(test_graphs, decoded_graphs, strict=True):
         edge_match=edge_match,
     )
 
-print(compressor.dictionary_frame())
+print("\nLearned dictionary")
+print(
+    compressor.dictionary_frame()[
+        ["motif_id", "motif_nodes", "motif_edges", "automorphism_order"]
+    ].to_string(index=False)
+)
+print("\nHeld-out graph rewrites")
+print(
+    result.per_graph[
+        [
+            "graph_index",
+            "original_nodes",
+            "template_nodes",
+            "selected_occurrences",
+            "gross_gain_bits",
+        ]
+    ].to_string(index=False)
+)
+print("\nComplete corpus accounting")
 print(result.report)
-print(f"compressed {len(compressed_graphs)} held-out graphs")
+print(f"\nPASS: reconstructed {len(decoded_graphs)} held-out graphs exactly")
