@@ -110,7 +110,7 @@ The permissive selector and threshold above make the rewrite visible on a tiny
 toy corpus. For scientific evaluation, use the default MDL-selected dictionary
 or report forced-rule experiments explicitly as diagnostics.
 
-## The strongest parts of the API
+## How this works
 
 ### A frozen, leakage-safe dictionary
 
