@@ -207,6 +207,7 @@ are normalized and are not part of the current coding guarantee.
 | [`compression_quickstart.py`](examples/compression_quickstart.py) | complete fit → transform → decode workflow |
 | [`mdl_dataset_example.py`](examples/mdl_dataset_example.py) | minimal dataset-level use with a frozen dictionary |
 | [`mdl_analyze_tu.py`](examples/mdl_analyze_tu.py) | candidate and dictionary diagnostics on TU data |
+| [`admet_smoke.py`](examples/admet/admet_smoke.py) | official TDC score plus train-only molecular compression diagnostics |
 | [`benchmark_reddit_tokenization.py`](examples/benchmark_reddit_tokenization.py) | original-versus-tokenized graphlet timing |
 | [`benchmark_gnn_pareto.py`](examples/benchmark_gnn_pareto.py) | compression–speed–quality tradeoff study |
 
