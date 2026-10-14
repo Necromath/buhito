@@ -1,67 +1,39 @@
-# ADMET smoke test
+# ADMET benchmark driver
 
-This example proves that one official TDC ADMET benchmark can pass through a
-small, reproducible Buhito workflow on a laptop. It uses the official scaffold
-test split for `HIA_Hou`, fits the graphlet vocabulary on `train_val` only, and
-asks TDC to evaluate the held-out predictions with the benchmark metric.
+The current installation and run instructions are in the
+[ADMET compute handoff](../../docs/compute_handoff.md) on main. That guide covers
+the small compression check, full-partition compression, and the ordinary
+graphlet predictor, with provenance capture and results archives.
 
-It also runs a separate lossless-compression diagnostic. The default diagnostic
-uses 128 training molecules and 64 held-out molecules so that the first run is
-quick. It verifies exact decoding and records dictionary and MDL statistics.
+For the predictor and its separate sampled compression diagnostic, run:
 
-This is deliberately not the final compressed-feature comparison: the choice of
-how motif identity and boundary-port data enter a predictor remains part of the
-shared experimental contract.
+~~~bash
+bash scripts/run_admet_handoff.sh baseline HIA_Hou 4
+~~~
 
-## Install
+The driver uses the official TDC train_val/test boundary. It fits the graphlet
+vocabulary on train_val only and asks TDC to evaluate held-out predictions.
+Its compression section fits on 128 training molecules and transforms 64
+held-out molecules. Those limits apply to the compression diagnostic; the
+predictor uses the complete supplied split.
 
-PyTDC 1.1.15 still uses the legacy `pkg_resources` interface, so keep
-`setuptools` below the removal release in this environment.
+For custom diagnostic limits and output paths, the underlying entry point is:
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip wheel "setuptools==80.9.0"
-python -m pip install -e ".[admet]"
-python -m pip install --no-deps --no-build-isolation "PyTDC==1.1.15"
-```
-
-PyTDC's published dependency list currently pulls in a large multimodal model
-stack, including Torch and CUDA packages, that this loader does not use. The
-`--no-deps` line avoids that multi-gigabyte installation; the `admet` extra
-above installs the dependencies needed by this example explicitly.
-
-## Run the laptop smoke test
-
-```bash
+~~~bash
 python examples/admet/admet_smoke.py \
-  --dataset HIA_Hou \
-  --jobs 4 \
-  --compression-train-limit 128 \
-  --compression-test-limit 64
-```
+  --dataset HIA_Hou --jobs 4 --seed 1 \
+  --n-rules 5 --max-candidates 25 \
+  --compression-train-limit 128 --compression-test-limit 64 \
+  --output-dir results/admet_driver/hia_hou
+~~~
 
-The first run downloads the TDC data. The script writes:
+The first run downloads the TDC data. The driver writes summary.json, held-out
+predictions, candidates/dictionary CSVs, train/held-out compression tables, and
+an occurrence cache. Successful completion includes an official TDC score and
+zero held-out decode failures. Zero selected rules are a valid MDL outcome.
 
-- `results/admet_smoke/hia_hou/summary.json`;
-- held-out predictions;
-- candidate and selected-dictionary tables;
-- train and held-out compression tables;
-- a reusable occurrence cache.
-
-`summary.json` must report an official TDC score and zero held-out decode
-failures. A selected rule count of zero is a valid MDL result, not a failed run.
-
-After the smoke test passes, run the compression diagnostic over the complete
-official split by setting both limits to zero:
-
-```bash
-python examples/admet/admet_smoke.py \
-  --dataset HIA_Hou \
-  --jobs 4 \
-  --compression-train-limit 0 \
-  --compression-test-limit 0
-```
-
-The script performs one deterministic run. TDC asks for at least five runs for
-leaderboard-quality reporting, so neither command is a leaderboard submission.
+A compressed-input predictive comparison still needs an explicit motif/port
+feature adapter. This single deterministic run is not a leaderboard submission.
+See the [checkpoint validation](../../docs/checkpoint_validation.md) for the
+tested configuration and its results, and the [short dataset examples](../README.md)
+for compression-only entry points.

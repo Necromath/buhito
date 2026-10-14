@@ -1,7 +1,11 @@
 # Checkpoint validation, 14 October 2026
 
-The working tree built from feat/admet-smoke was checked with the new dataset
-examples, the clean-environment ADMET handoff, and the paper companion.
+The implementation checked here is preserved at
+[commit 4de6ba8](https://github.com/Necromath/buhito/commit/4de6ba881aca2daf8a69871d2b1be4c6ad513793),
+merged into `main` through [PR #5](https://github.com/Necromath/buhito/pull/5).
+For current instructions, use the [compute handoff](compute_handoff.md),
+[dataset examples](../examples/README.md), and [paper companion](paper/README.md).
+The results below are a record of that tested implementation.
 
 ## Checks
 
@@ -56,6 +60,9 @@ re-run against their original datasets here. No OMOL adapter is claimed.
 Opening Overleaf timed out; its live project was not edited. The compiled
 methods.tex companion and inclusion instructions are provided instead.
 
-Recorded run provenance names the starting commit and correctly marks the
-working tree as modified: checks were performed before publication of the
-review branch. Generated data, logs, caches, and results are excluded from Git.
+Initial run receipts name starting commit
+5c9814cb1b28aab7a138986efed8ea5e19ef4ed4 and correctly mark the working tree as
+modified: those checks preceded publication. A further smoke check passed at
+committed revision 4de6ba881aca2daf8a69871d2b1be4c6ad513793 with a clean working
+tree. New experiments use `main` and retain their own exact revision receipts.
+Generated data, logs, caches, and results are excluded from Git.

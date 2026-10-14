@@ -1,16 +1,15 @@
 # ADMET compute handoff
 
-Run from a checkout of the reviewed commit on Python 3.12/Linux. The source
-branch is feat/lanl-checkpoint-2026-10-19. Pin the commit displayed by the PR,
-then record it in each run; the wrapper does that automatically.
+Use the current `main` branch on Python 3.12/Linux. This is the canonical run
+guide for the merged ADMET workflow. Every run records its exact source commit
+automatically, so reproducing an experiment does not require keeping a feature
+branch alive.
 
 ## 1. Get the code and install
 
 ~~~bash
-git clone https://github.com/Necromath/buhito.git
+git clone --branch main --single-branch https://github.com/Necromath/buhito.git
 cd buhito
-git fetch origin feat/lanl-checkpoint-2026-10-19
-git switch --detach origin/feat/lanl-checkpoint-2026-10-19
 git rev-parse HEAD
 python3.12 -m venv .venv
 source .venv/bin/activate
@@ -19,9 +18,20 @@ python -m pip install -c requirements/admet-constraints.txt -e ".[admet]"
 python -m pip install --no-deps --no-build-isolation "PyTDC==1.1.15"
 ~~~
 
-Use the PR's exact commit SHA in place of the moving branch ref for a repeat
-experiment. The constraints pin the core scientific packages; every run also
-records the complete installed dependency list.
+For an existing checkout, update `main` before installing or starting a new
+experiment:
+
+~~~bash
+git fetch origin
+git switch main
+git pull --ff-only origin main
+~~~
+
+To reproduce a previous run, check out the commit recorded in its revision.txt
+instead of updating to the latest `main`. Commit history remains available
+after merged feature branches are deleted. The constraints pin the core
+scientific packages; every run also records the complete installed dependency
+list.
 
 PyTDC is installed separately because its declared dependencies include an
 unrelated multimodal stack. The admet extra provides the dependencies used by
