@@ -2,7 +2,12 @@ import networkx as nx
 
 import buhito
 import buhito.mdl
-from buhito.compression import ExhaustiveGraphletEnumerator, MDLGraphCompressor
+from buhito.compression import (
+    BuhitoGraphletEnumerator,
+    ExhaustiveGraphletEnumerator,
+    GraphSchema,
+    MDLGraphCompressor,
+)
 
 
 def _triangle_corpus() -> list[nx.Graph]:
@@ -53,6 +58,21 @@ def test_fit_and_transform_are_separate_public_operations():
     assert hasattr(compressor, "fit")
     assert hasattr(compressor, "transform")
     assert hasattr(compressor, "fit_transform")
+
+
+def test_default_buhito_enumerator_imports_after_package_refactor():
+    graph = nx.path_graph(4)
+    nx.set_node_attributes(graph, "C", "atom")
+    nx.set_edge_attributes(graph, "single", "bond")
+    normalized = GraphSchema.from_keys(
+        node_label_keys="atom",
+        edge_label_keys="bond",
+    ).normalize(graph)
+
+    occurrences = BuhitoGraphletEnumerator().enumerate(normalized, (2, 3))
+
+    assert occurrences
+    assert {int(key[0]) for key in occurrences} == {2, 3}
 
 
 def test_legacy_and_top_level_imports_share_the_canonical_objects():

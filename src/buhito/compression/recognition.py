@@ -47,12 +47,9 @@ class BuhitoGraphletEnumerator:
         graph: nx.Graph,
         sizes: tuple[int, ...],
     ) -> dict[Hashable, list[frozenset[int]]]:
-        try:
-            from .featurizers.bfs_graphlet_featurizer import (
-                generate_subgraphs_breadthwise,
-            )
-        except ImportError:  # pragma: no cover - only relevant outside package
-            from . import generate_subgraphs_breadthwise  # type: ignore
+        from ..featurizers.bfs_graphlet_featurizer import (
+            generate_subgraphs_breadthwise,
+        )
 
         _, bitinfo = generate_subgraphs_breadthwise(
             graph,

@@ -325,7 +325,9 @@ def test_training_uses_paired_deterministic_holdout_indices(tmp_path):
 def test_inference_checksum_is_finite_for_extreme_finite_logits():
     import math
 
-    import torch
+    import pytest
+
+    torch = pytest.importorskip("torch")
 
     from buhito.benchmarks._gnn_worker import _stable_output_checksum
 
@@ -343,7 +345,8 @@ def test_inference_checksum_is_finite_for_extreme_finite_logits():
 
 def test_inference_checksum_rejects_nonfinite_logits():
     import pytest
-    import torch
+
+    torch = pytest.importorskip("torch")
 
     from buhito.benchmarks._gnn_worker import _stable_output_checksum
 
