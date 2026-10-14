@@ -1,0 +1,10 @@
+# Core versions used for the Python 3.12 compute handoff.
+setuptools==80.9.0
+networkx==3.7
+numpy==1.26.4
+pandas==2.2.3
+scikit-learn==1.8.0
+scipy==1.17.0
+rdkit==2023.9.6
+# Install separately with --no-deps to avoid the unrelated multimodal stack.
+PyTDC==1.1.15

@@ -19,7 +19,22 @@ attributes named by `GraphSchema` or the compressor's label-key arguments.
 | Count/select | `dictionary.py` | Aggregate support, score candidates, freeze a dictionary |
 | Substitute | `substitution.py` | Choose non-overlapping occurrences, contract, and decode |
 | Orchestrate | `pipeline.py` | Normalize input, fit on training data, transform held-out data, report |
-| Share types | `models.py` | Schemas, rules, occurrences, rewrites, and results |
+| Share types | `models.py` | Graph schemas, motif and rewrite records, result containers, and codelength primitives |
+
+### What `models.py` contains
+
+The name refers to compression data structures. `GraphSchema` defines the
+attributes in the reversible code and normalizes/restores graph labels.
+`Occurrence` and `MotifRule` describe recognized graphlets and dictionary
+entries. `Rewrite` retains the contracted carrier, rule identities, and
+boundary information for decoding. `EncodedGraph`, `DatasetCode`, and
+`CompressionResult` expose per-graph records, corpus accounting, model graph
+views, and decoded graphs. `Alphabets` and the coding helpers provide shared
+analytical codelength calculations.
+
+These objects connect recognition, dictionary selection, substitution, and
+orchestration. Dataset-specific predictors remain in examples and research
+drivers; they are not defined in this module.
 
 Dataset-specific SMILES parsing, TU-file parsing, key normalization, and target
 handling stay in `examples/` or `buhito.datasets`; they are not branches in

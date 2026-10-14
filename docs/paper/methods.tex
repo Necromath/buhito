@@ -1,0 +1,127 @@
+% Include with \input{methods}; requires amsmath, algorithm, and algpseudocode.
+\subsection{Train-only graphlet dictionary fitting}
+\label{sec:graphlet-pipeline}
+
+The pipeline accepts a collection of undirected simple graphs together with
+a schema $\sigma$ specifying the node and edge attributes included in the
+reversible representation. Dataset adapters provide NetworkX graphs and retain
+prediction targets and uncoded scientific metadata outside the compressor.
+The implementation separates shared graph records and coding primitives,
+recognition, dictionary accounting, reversible substitution, and fitted
+orchestration. Its public interface is
+\texttt{MDLGraphCompressor.fit} followed by \texttt{transform}.
+
+Dictionary fitting uses training graphs only. A configurable backend enumerates
+candidate connected induced graphlets of the requested sizes. Recognition
+distinguishes labeled motif identities and aligns their occurrences to motif
+vertices. The pipeline aggregates graph support and occurrence counts, applies
+minimum-support thresholds, and caps the number of candidates receiving the
+more expensive coding evaluation. Retained candidates are ranked by their
+single-rule forced-rewrite savings, with support and occurrence counts breaking
+ties. It then evaluates ranked prefixes up to the maximum rule count, including
+the empty prefix. The default selection chooses the eligible evaluated prefix
+with the largest training-corpus net savings. This is a bounded ranked-prefix
+search, not a global optimization over all dictionaries.
+
+\subsection{Frozen transformation and reconstruction}
+
+Transformation holds the learned rules, training alphabets, and observed
+graphlet keys fixed. It locates occurrences of the frozen rules in each input
+graph, greedily packs non-overlapping occurrences, and contracts each packed
+occurrence. Packing prioritizes lower external degree, then larger motif edge
+and node counts, then rule rank and a deterministic host-alignment tie break.
+The carrier can be a multigraph because several
+original boundary edges can connect the same contracted nodes. Rule identity,
+occurrence alignment, and canonical boundary-port information retain the
+attachment data needed to expand each contraction. When validation is enabled,
+proposed rewrites are decoded and checked against the normalized original
+graphs with their selected node and edge labels.
+
+For a dictionary $D$, a graph collection $\mathcal G$, and selector decisions
+$z_G\in\{0,1\}$, the analytical corpus cost separates the following terms:
+\begin{equation}
+\begin{aligned}
+C(D,\mathcal G,z)={}&C_{\mathrm{dict}}(D,z)
+  +C_{\mathrm{selector}}(z)+C_{\mathrm{choice}}\\
+ &+\sum_{G:z_G=1}
+   \left[C_{\mathrm{carrier}}(T_G)
+        +C_{\mathrm{boundary}}(T_G)\right]
+  +\sum_{G:z_G=0}C_{\mathrm{base}}(G).
+\end{aligned}
+\label{eq:corpus-cost}
+\end{equation}
+The dictionary charge depends on whether it is used, as implemented by the
+selector. The corpus selector evaluates original and rewritten alternatives
+separately for each transformed collection; it uses graph structure and coding
+costs, not prediction targets. Reports expose baseline and encoded costs,
+dictionary and selector charges, boundary costs, coverage, contractions, and
+structural size changes. These are analytical codelengths rather than measured
+packed-file sizes.
+
+The empty dictionary is a legitimate selection outcome. With the current
+one-bit model-choice charge, a collection retaining its original representation
+can report $-1$ bit of net savings. Forced-prefix diagnostics are recorded
+separately from default MDL selection and retain their actual costs.
+An available rewrite may also remain unused when the corpus selector prefers
+the original graph.
+
+The reconstruction contract covers undirected simple topology and the
+attributes selected by $\sigma$, up to labeled graph isomorphism. Original node
+identifiers, unselected attributes, coordinates, and arbitrary graph metadata
+are outside this coding guarantee. A downstream model may use a graph view or
+features derived from the reversible representation; removing motif identities
+or boundary information changes that view. Prediction quality, model runtime,
+and measured storage must therefore be evaluated separately from exact
+reconstruction and analytical coding savings.
+
+\begin{algorithm}[tbp]
+\caption{Fit a graphlet dictionary on training graphs}
+\label{alg:fit-graphlet-dictionary}
+\small
+\begin{algorithmic}[1]
+\Require Training graphs $\mathcal G_{\mathrm{tr}}$, schema $\sigma$,
+  graphlet sizes, support thresholds, candidate cap, maximum rules $R$
+\Ensure Frozen dictionary $D^\star$ and training coding state $A$
+\State $\mathcal N\gets\mathrm{Normalize}_\sigma(\mathcal G_{\mathrm{tr}})$
+\State Enumerate candidate graphlets; recognize identities and occurrences
+\State Aggregate graph support and occurrence counts
+\State Filter by support thresholds and apply the candidate cap
+\State Build training alphabets and observed graphlet keys $A$
+\For{each retained candidate $c$}
+  \State $s_c\gets\mathrm{ForcedSingleRuleSavings}(\mathcal N,c,A)$
+\EndFor
+\State Rank candidates by $s_c$, support, and occurrence count
+\State $\mathcal P\gets$ ranked prefixes of length at most $R$, including $\emptyset$
+\For{each $D\in\mathcal P$}
+  \State $E_D\gets\mathrm{EvaluateCorpus}(\mathcal N,D,A)$
+  \State Record costs, savings, and minimum-rule-savings eligibility
+\EndFor
+\State $D^\star\gets$ eligible prefix with largest training net savings
+\State Freeze $D^\star$ and $A$
+\State \Return $(D^\star,A)$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[tbp]
+\caption{Transform graphs with a frozen dictionary}
+\label{alg:apply-graphlet-dictionary}
+\small
+\begin{algorithmic}[1]
+\Require Graphs $\mathcal G$, schema $\sigma$, frozen dictionary $D^\star$, state $A$
+\Ensure Reversible graph records and corpus accounting
+\State $\mathcal N\gets\mathrm{Normalize}_\sigma(\mathcal G)$
+\For{each graph $G\in\mathcal N$}
+  \State Locate labeled occurrences of the frozen rules
+  \State Greedily pack by boundary degree, motif size, and rule rank
+  \State Contract the packed occurrences into a carrier $T_G$
+  \State Retain rule identities, alignments, and canonical boundary ports
+  \If{validation is enabled and a rewrite exists}
+    \State Verify $\mathrm{Decode}(T_G)\cong_\sigma G$
+  \EndIf
+  \State Compute original, carrier, and boundary codelengths
+\EndFor
+\State Apply the corpus selector to original/rewrite alternatives
+\State Add dictionary, selector, and model-choice charges
+\State \Return selected graph records and the corpus report
+\end{algorithmic}
+\end{algorithm}

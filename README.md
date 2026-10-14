@@ -169,7 +169,7 @@ targets, and model-specific adaptation remain outside the core library.
 
 | Module | Responsibility |
 |---|---|
-| `compression/models.py` | schemas, shared value objects, coding primitives |
+| `compression/models.py` | graph schemas, motif and rewrite records, result containers, and codelength primitives |
 | `compression/recognition.py` | candidate recognition, occurrence counting, and alignment |
 | `compression/dictionary.py` | MDL costs, selectors, and dictionary decisions |
 | `compression/substitution.py` | non-overlapping contraction, ports, and decoding |
@@ -206,6 +206,7 @@ are normalized and are not part of the current coding guarantee.
 |---|---|
 | [`compression_quickstart.py`](examples/compression_quickstart.py) | complete fit → transform → decode workflow |
 | [`mdl_dataset_example.py`](examples/mdl_dataset_example.py) | minimal dataset-level use with a frozen dictionary |
+| [Short dataset examples](examples/README.md) | TU, molecular CSVs, ADMET, ZINC, and syntax inputs, including zero-rule and forced diagnostics |
 | [`mdl_analyze_tu.py`](examples/mdl_analyze_tu.py) | candidate and dictionary diagnostics on TU data |
 | [`admet_smoke.py`](examples/admet/admet_smoke.py) | official TDC score plus train-only molecular compression diagnostics |
 | [`benchmark_reddit_tokenization.py`](examples/benchmark_reddit_tokenization.py) | original-versus-tokenized graphlet timing |
@@ -227,6 +228,8 @@ default Buhito breadth-first enumerator is the production backend.
 ## Documentation
 
 - [Compression architecture and contract](docs/compression_architecture.md)
+- [Short dataset examples](examples/README.md)
+- [Compute handoff](docs/compute_handoff.md)
 - [Detailed research and benchmark reference](docs/full_reference.md)
 - [Research workflow notes](research/README.md)
 

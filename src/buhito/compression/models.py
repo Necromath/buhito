@@ -1,4 +1,16 @@
-"""Shared schemas, value objects, and coding primitives."""
+"""Shared data structures and codelength primitives for graph compression.
+
+GraphSchema defines the node and edge attributes included in the reversible
+code. Occurrence and MotifRule describe recognized graphlets and dictionary
+entries. Rewrite retains the contracted carrier and boundary information used
+for decoding. EncodedGraph, DatasetCode, and CompressionResult expose graph
+records, corpus accounting, model graph views, and reconstructed graphs.
+
+Recognition, dictionary selection, substitution, and orchestration exchange
+these objects. Alphabets and the coding helpers provide their common analytical
+codelength calculations. Here, models means compression data structures;
+downstream predictors belong to the experiment layer.
+"""
 
 from __future__ import annotations
 
