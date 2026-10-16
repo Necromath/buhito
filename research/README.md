@@ -28,6 +28,10 @@ be cleaned or refactored in place.
 
 ## Research areas
 
+- `agent_compression/`
+  Bounded coding-agent experiments on occurrence packing, with a fixed
+  evaluator, synthetic controls, source hashes, and explicit MDL accounting.
+
 - `bit_accounting/`
   Reconciliation of the tracked analytical MDL accountant and the later
   explicit ZINC enumerative codec.
